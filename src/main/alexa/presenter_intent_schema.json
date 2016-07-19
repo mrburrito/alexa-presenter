@@ -1,0 +1,16 @@
+{
+  "intents": [
+    {
+      "intent": "StartPresentation",
+      "slots": [
+        {
+          "name": "Presentation",
+          "type": "PRESENTATION_NAME"
+        }
+      ]
+    },
+    { "intent": "ListPresentations" },
+    { "intent": "AMAZON.StopIntent" },
+    { "intent": "AMAZON.CancelIntent" }
+  ]
+}

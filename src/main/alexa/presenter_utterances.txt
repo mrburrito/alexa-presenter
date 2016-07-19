@@ -1,0 +1,23 @@
+StartPresentation start {PRESENTATION}
+StartPresentation start presentation {PRESENTATION}
+StartPresentation open {PRESENTATION}
+StartPresentation open presentation {PRESENTATION}
+StartPresentation show {PRESENTATION}
+StartPresentation show presentation {PRESENTATION}
+StartPresentation run {PRESENTATION}
+StartPresentation run presentation {PRESENTATION}
+StartPresentation start a presentation
+StartPresentation start my presentation
+StartPresentation start the presentation
+
+ListPresentations list
+ListPresentations list presentations
+ListPresentations what presentations are available
+ListPresentations what can I start
+ListPresentations what can you start
+ListPresentations what presentations do you know about
+ListPresentations what presentations can i start
+ListPresentations what presentations can you start
+ListPresentations what presentations do you have
+
+
