@@ -189,6 +189,9 @@ public class PresenterSpeechlet implements Speechlet {
             if (i < count - 1) {
                 builder.append("<break strength=\"medium\"/>");
             }
+            if (i == count - 2) {
+                builder.append("or ");
+            }
         }
         builder.append("<s>which would you like</s>");
         return builder.toString();
