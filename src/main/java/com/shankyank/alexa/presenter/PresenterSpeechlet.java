@@ -50,11 +50,11 @@ public class PresenterSpeechlet implements Speechlet {
     }
 
     public void onSessionStarted(SessionStartedRequest request, Session session) throws SpeechletException {
-        List<Presentation> presentations = sessionInitializer.getAvailablePresentations();
-        PresentationStarter starter = sessionInitializer.getPresentationStarter();
-        session.setAttribute(PRESENTATIONS_KEY, presentations);
-        session.setAttribute(STARTER_KEY, starter);
-        LOGGER.debug("[{}]: presentationStarter={}, presentations={}", session.getSessionId(), starter, presentations);
+//        List<Presentation> presentations = sessionInitializer.getAvailablePresentations();
+//        PresentationStarter starter = sessionInitializer.getPresentationStarter();
+//        session.setAttribute(PRESENTATIONS_KEY, presentations);
+//        session.setAttribute(STARTER_KEY, starter);
+//        LOGGER.debug("[{}]: presentationStarter={}, presentations={}", session.getSessionId(), starter, presentations);
     }
 
     public SpeechletResponse onLaunch(LaunchRequest request, Session session) throws SpeechletException {
@@ -90,7 +90,7 @@ public class PresenterSpeechlet implements Speechlet {
         session.removeAttribute(PRESENTATION_KEY);
     }
 
-    private static boolean hasPresentations(final Session session) {
+    private boolean hasPresentations(final Session session) throws SpeechletException {
         return !getPresentationList(session).isEmpty();
     }
 
@@ -135,7 +135,8 @@ public class PresenterSpeechlet implements Speechlet {
         if (presentation == null) {
             response = listPresentations(session);
         } else {
-            PresentationStarter starter = (PresentationStarter) session.getAttribute(STARTER_KEY);
+//            PresentationStarter starter = (PresentationStarter) session.getAttribute(STARTER_KEY);
+            PresentationStarter starter = sessionInitializer.getPresentationStarter();
             if (starter == null) {
                 throw new SpeechletException("No presentation starter configured");
             }
@@ -148,11 +149,11 @@ public class PresenterSpeechlet implements Speechlet {
         return response;
     }
 
-    private static SpeechletResponse listPresentations(final Session session) {
+    private SpeechletResponse listPresentations(final Session session) throws SpeechletException {
         return createContinueSessionResponse(generatePresentationListText(session));
     }
 
-    private static MatchedPresentation matchPresentation(final Slot slot, final Session session) {
+    private MatchedPresentation matchPresentation(final Slot slot, final Session session) throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         SortedSet<MatchedPresentation> matches = new TreeSet<>();
         for (Presentation presentation : presentations) {
@@ -167,12 +168,13 @@ public class PresenterSpeechlet implements Speechlet {
         return matches.last();
     }
 
-    private static List<Presentation> getPresentationList(final Session session) {
-        List<Presentation> presentations = (List<Presentation>) session.getAttribute(PRESENTATIONS_KEY);
+    private List<Presentation> getPresentationList(final Session session) throws SpeechletException {
+//        List<Presentation> presentations = (List<Presentation>) session.getAttribute(PRESENTATIONS_KEY);
+        List<Presentation> presentations = sessionInitializer.getAvailablePresentations();
         return presentations != null ? presentations : Collections.EMPTY_LIST;
     }
 
-    private static String generatePresentationListText(final Session session) {
+    private String generatePresentationListText(final Session session) throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         int count = presentations.size();
         StringBuilder builder = new StringBuilder(String.format("<s>i can start %d presentations</s>", count));
@@ -180,6 +182,9 @@ public class PresenterSpeechlet implements Speechlet {
             builder.append(presentations.get(i).getSsml());
             if (i < count - 1) {
                 builder.append("<break strength=\"medium\"/>");
+            }
+            if (i == count - 2) {
+                builder.append("or ");
             }
         }
         builder.append("<s>which would you like</s>");

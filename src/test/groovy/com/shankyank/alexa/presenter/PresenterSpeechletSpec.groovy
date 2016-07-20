@@ -8,6 +8,7 @@ import com.amazon.speech.speechlet.Session
 import com.amazon.speech.speechlet.SessionStartedRequest
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.ui.SsmlOutputSpeech
+import spock.lang.Ignore
 import spock.lang.Specification
 
 import static com.shankyank.alexa.presenter.PresenterSpeechlet.*
@@ -26,18 +27,23 @@ class PresenterSpeechletSpec extends Specification {
 
     Session session
     PresentationStarter starter
+    SessionInitializer initializer
     PresenterSpeechlet instance
 
 
     def setup() {
         starter = Mock(PresentationStarter)
         starter.startPresentation(_, _) >> true
+        initializer = Mock(SessionInitializer)
+        initializer.getAvailablePresentations() >> TEST_PRESENTATIONS
+        initializer.getPresentationStarter() >> starter
         session = Session.builder().withSessionId(TEST_SESSION_ID).build()
-        session.setAttribute(PRESENTATIONS_KEY, TEST_PRESENTATIONS)
-        session.setAttribute(STARTER_KEY, starter)
-        instance = new PresenterSpeechlet()
+//        session.setAttribute(PRESENTATIONS_KEY, TEST_PRESENTATIONS)
+//        session.setAttribute(STARTER_KEY, starter)
+        instance = new PresenterSpeechlet(initializer)
     }
 
+    @Ignore
     def 'session is initialized on startup'() {
         given:
         SessionStartedRequest request = SessionStartedRequest.builder().
@@ -69,22 +75,26 @@ class PresenterSpeechletSpec extends Specification {
         given:
         LaunchRequest request = LaunchRequest.builder().
                 withRequestId("test-id").withTimestamp(new Date()).build()
-        session.setAttribute(PRESENTATIONS_KEY, null)
+//        session.setAttribute(PRESENTATIONS_KEY, null)
 
         when:
         def result = instance.onLaunch(request, session)
 
         then:
-        result.shouldEndSession
+        1*initializer.getAvailablePresentations() >> []
         result.outputSpeech.ssml == '<speak><s>no presentations are available</s><s>goodbye</s></speak>'
+        result.shouldEndSession
     }
 
+    @Ignore
     def 'user is informed by all actionable intents when no presentations are available and session is temrinated'() {
+        initializer.getAvailablePresentations() >> []
+
         expect:
-        session.setAttribute(PRESENTATIONS_KEY, null)
+//        session.setAttribute(PRESENTATIONS_KEY, null)
         def result = instance.onIntent(createIntentRequest(intent), session)
-        result.shouldEndSession
         result.outputSpeech.ssml == '<speak><s>no presentations are available</s><s>goodbye</s></speak>'
+        result.shouldEndSession
 
         where:
         intent << [START_PRESENTATION_INTENT, LIST_PRESENTATIONS_INTENT, 'AMAZON.YesIntent', 'AMAZON.NoIntent']
@@ -147,7 +157,7 @@ class PresenterSpeechletSpec extends Specification {
 
     def 'exception thrown if no presentation starter is configured'() {
         given:
-        session.removeAttribute(STARTER_KEY)
+//        session.removeAttribute(STARTER_KEY)
         Presentation presentation = TEST_PRESENTATIONS.first()
         IntentRequest request = createStartRequest(presentation.name)
 
@@ -155,21 +165,34 @@ class PresenterSpeechletSpec extends Specification {
         def result = instance.onIntent(request, session)
 
         then:
+        1*initializer.getPresentationStarter() >> null
         thrown(SpeechletException)
     }
 
     def 'user is prompted for confirmation when recognized presentation is low confidence'() {
-        expect:
+        given:
         Presentation presentation = new Presentation('low confidence', 'low_confidence.pptx')
-        session.setAttribute(PRESENTATIONS_KEY, [presentation] + TEST_PRESENTATIONS)
-        IntentRequest request = createStartRequest(name)
+        initializer.getAvailablePresentations() >> [presentation] + TEST_PRESENTATIONS
+//        session.setAttribute(PRESENTATIONS_KEY, [presentation] + TEST_PRESENTATIONS)
+
+        when:
+        IntentRequest request = createStartRequest('confidence')
         def result = instance.onIntent(request, session)
+
+        then:
         !result.shouldEndSession
         session.getAttribute(PRESENTATION_KEY).presentation == presentation
         result.outputSpeech.ssml == "<speak>did you mean ${presentation.ssml}</speak>"
 
-        where:
-        name << [ 'confidence', 'low con fee dense' ]
+        when:
+        session.removeAttribute(PRESENTATION_KEY)
+        request = createStartRequest('lo con fee dense')
+        result = instance.onIntent(request, session)
+
+        then:
+        !result.shouldEndSession
+        session.getAttribute(PRESENTATION_KEY).presentation == presentation
+        result.outputSpeech.ssml == "<speak>did you mean ${presentation.ssml}</speak>"
     }
 
     def 'presentations are listed for yes intent with no previously requested presentation'() {
@@ -251,10 +274,13 @@ class PresenterSpeechletSpec extends Specification {
     }
 
     private static String getPresentationSsml(final List presentations=TEST_PRESENTATIONS) {
+        List<String> ssml = presentations.collect { it.ssml }
+        String joinedSsml = ssml.join('<break strength="medium"/>')
+        joinedSsml = joinedSsml.replace(ssml.last(), "or ${ssml.last()}")
         """
 <speak>
-<s>i can start ${TEST_PRESENTATIONS.size()} presentations</s>
-${TEST_PRESENTATIONS.collect { it.name }.join('<break strength="medium"/>')}
+<s>i can start ${presentations.size()} presentations</s>
+${joinedSsml}
 <s>which would you like</s>
 </speak>
 """.replaceAll('\n', '')
