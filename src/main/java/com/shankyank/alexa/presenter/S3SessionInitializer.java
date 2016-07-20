@@ -3,8 +3,6 @@ package com.shankyank.alexa.presenter;
 import com.amazon.speech.speechlet.SpeechletException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import static com.shankyank.alexa.presenter.Presentation.LIST_OF_PRESENTATIONS;
+
 /**
  * Session initializer that reads its configuration from S3.
  */
@@ -21,7 +21,6 @@ public class S3SessionInitializer implements SessionInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger(S3SessionInitializer.class);
 
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final TypeReference<List<Presentation>> PRESENTATION_TYPE = new TypeReference<List<Presentation>>(){};
 
     private static final String BUCKET = "bti-presenter";
     private static final String PRESENTATIONS_OBJECT_KEY = "config/presentations.json";
@@ -30,7 +29,7 @@ public class S3SessionInitializer implements SessionInitializer {
     @Override
     public List<Presentation> getAvailablePresentations() throws SpeechletException {
         try (InputStream is = openS3Stream(BUCKET, PRESENTATIONS_OBJECT_KEY)) {
-            List<Presentation> presentations = JSON.readValue(is, PRESENTATION_TYPE);
+            List<Presentation> presentations = JSON.readValue(is, LIST_OF_PRESENTATIONS);
             LOGGER.debug("Loaded presentations: {}", presentations);
             return presentations;
         } catch (IOException | AmazonS3Exception ex) {

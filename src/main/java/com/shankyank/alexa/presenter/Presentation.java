@@ -2,11 +2,18 @@ package com.shankyank.alexa.presenter;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import java.util.List;
 
 /**
  * Domain object representing a presentation.
  */
 public class Presentation {
+    /** The Jackson TypeReference for a List of Presentations. */
+    public static final TypeReference<List<Presentation>> LIST_OF_PRESENTATIONS =
+            new TypeReference<List<Presentation>>(){};
+
     /**
      * The name of the presentation.
      */

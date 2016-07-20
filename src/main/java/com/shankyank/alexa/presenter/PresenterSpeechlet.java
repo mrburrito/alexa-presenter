@@ -4,11 +4,17 @@ import com.amazon.speech.slu.Intent;
 import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.*;
 import com.amazon.speech.ui.SsmlOutputSpeech;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.*;
+
+import static com.shankyank.alexa.presenter.Presentation.LIST_OF_PRESENTATIONS;
 
 /**
  * The Presenter Speechlet application.
@@ -26,6 +32,8 @@ public class PresenterSpeechlet implements Speechlet {
     private static final String HELP_TEXT =
             "<s>you can list presentations or start a presentation</s><s>what would you like</s>";
     private static final String NO_PRESENTATIONS_TEXT = "<s>no presentations are available</s><s>goodbye</s>";
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final SessionInitializer sessionInitializer;
 
@@ -51,10 +59,8 @@ public class PresenterSpeechlet implements Speechlet {
 
     public void onSessionStarted(SessionStartedRequest request, Session session) throws SpeechletException {
         List<Presentation> presentations = sessionInitializer.getAvailablePresentations();
-        PresentationStarter starter = sessionInitializer.getPresentationStarter();
-        session.setAttribute(PRESENTATIONS_KEY, presentations);
-        session.setAttribute(STARTER_KEY, starter);
-        LOGGER.debug("[{}]: presentationStarter={}, presentations={}", session.getSessionId(), starter, presentations);
+        session.setAttribute(PRESENTATIONS_KEY, toJson(presentations));
+        LOGGER.debug("[{}]: presentations={}", session.getSessionId(), presentations);
     }
 
     public SpeechletResponse onLaunch(LaunchRequest request, Session session) throws SpeechletException {
@@ -78,6 +84,7 @@ public class PresenterSpeechlet implements Speechlet {
             case "AMAZON.YesIntent":
                 return startPresentation(session);
             case "AMAZON.NoIntent":
+                session.removeAttribute(PRESENTATION_KEY);
                 return listPresentations(session);
             case "AMAZON.StopIntent":
             case "AMAZON.CancelIntent":
@@ -90,7 +97,7 @@ public class PresenterSpeechlet implements Speechlet {
         session.removeAttribute(PRESENTATION_KEY);
     }
 
-    private static boolean hasPresentations(final Session session) {
+    private static boolean hasPresentations(final Session session) throws SpeechletException {
         return !getPresentationList(session).isEmpty();
     }
 
@@ -111,12 +118,12 @@ public class PresenterSpeechlet implements Speechlet {
             if (matched.getConfidence() >= 0.85) {
                 LOGGER.debug("[{}] Match confidence {} >= 0.85; starting presentation", session.getSessionId(),
                         matched.getConfidence());
-                session.setAttribute(PRESENTATION_KEY, matched);
+                session.setAttribute(PRESENTATION_KEY, toJson(matched));
                 response = startPresentation(session);
             } else if (matched.getConfidence() >= 0.50) {
                 LOGGER.debug("[{}] 0.85 > Match Confidence {} >= 0.5; requesting confirmation", session.getSessionId(),
                         matched.getConfidence());
-                session.setAttribute(PRESENTATION_KEY, matched);
+                session.setAttribute(PRESENTATION_KEY, toJson(matched));
                 response = createContinueSessionResponse("did you mean %s", matched.getPresentation().getSsml());
             } else {
                 LOGGER.debug("[{}] Unrecognized presentation. Confidence < 0.5 for best match: {}",
@@ -129,13 +136,13 @@ public class PresenterSpeechlet implements Speechlet {
     }
 
     private SpeechletResponse startPresentation(final Session session) throws SpeechletException {
-        MatchedPresentation presentation = (MatchedPresentation) session.getAttribute(PRESENTATION_KEY);
+        MatchedPresentation presentation = getSessionAttribute(session, PRESENTATION_KEY, MatchedPresentation.class);
         LOGGER.info("[{}] Starting Presentation: {}", session.getSessionId(), presentation);
         SpeechletResponse response;
         if (presentation == null) {
             response = listPresentations(session);
         } else {
-            PresentationStarter starter = (PresentationStarter) session.getAttribute(STARTER_KEY);
+            PresentationStarter starter = sessionInitializer.getPresentationStarter();
             if (starter == null) {
                 throw new SpeechletException("No presentation starter configured");
             }
@@ -148,11 +155,12 @@ public class PresenterSpeechlet implements Speechlet {
         return response;
     }
 
-    private static SpeechletResponse listPresentations(final Session session) {
+    private static SpeechletResponse listPresentations(final Session session) throws SpeechletException {
         return createContinueSessionResponse(generatePresentationListText(session));
     }
 
-    private static MatchedPresentation matchPresentation(final Slot slot, final Session session) {
+    private static MatchedPresentation matchPresentation(final Slot slot, final Session session)
+            throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         SortedSet<MatchedPresentation> matches = new TreeSet<>();
         for (Presentation presentation : presentations) {
@@ -167,12 +175,12 @@ public class PresenterSpeechlet implements Speechlet {
         return matches.last();
     }
 
-    private static List<Presentation> getPresentationList(final Session session) {
-        List<Presentation> presentations = (List<Presentation>) session.getAttribute(PRESENTATIONS_KEY);
+    private static List<Presentation> getPresentationList(final Session session) throws SpeechletException {
+        List<Presentation> presentations = getSessionAttribute(session, PRESENTATIONS_KEY, LIST_OF_PRESENTATIONS);
         return presentations != null ? presentations : Collections.EMPTY_LIST;
     }
 
-    private static String generatePresentationListText(final Session session) {
+    private static String generatePresentationListText(final Session session) throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         int count = presentations.size();
         StringBuilder builder = new StringBuilder(String.format("<s>i can start %d presentations</s>", count));
@@ -204,5 +212,33 @@ public class PresenterSpeechlet implements Speechlet {
         response.setShouldEndSession(shouldEndSession);
         response.setOutputSpeech(speech);
         return response;
+    }
+
+    private static String toJson(final Object obj) throws SpeechletException {
+        try {
+            return JSON.writeValueAsString(obj);
+        } catch (JsonProcessingException jpe) {
+            throw new SpeechletException("Serialization Error", jpe);
+        }
+    }
+
+    private static <T> T getSessionAttribute(final Session session, final String key, final Class<T> type)
+            throws SpeechletException {
+        try {
+            Object value = session.getAttribute(key);
+            return value != null ? JSON.readValue(value.toString(), type) : null;
+        } catch (IOException ioe) {
+            throw new SpeechletException("Deserialization error.", ioe);
+        }
+    }
+
+    private static <T> T getSessionAttribute(final Session session, final String key, final TypeReference<T> type)
+            throws SpeechletException {
+        try {
+            Object value = session.getAttribute(key);
+            return value != null ? JSON.readValue(value.toString(), type) : null;
+        } catch (IOException ioe) {
+            throw new SpeechletException("Deserialization error.", ioe);
+        }
     }
 }
