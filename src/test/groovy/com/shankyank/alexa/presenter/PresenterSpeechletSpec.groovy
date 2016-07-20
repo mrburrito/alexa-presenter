@@ -265,10 +265,13 @@ class PresenterSpeechletSpec extends Specification {
     }
 
     private static String getPresentationSsml(final List presentations=TEST_PRESENTATIONS) {
+        List<String> ssml = presentations.collect { it.ssml }
+        String joinedSsml = ssml.join('<break strength="medium"/>')
+        joinedSsml = joinedSsml.replace(ssml.last(), "or ${ssml.last()}")
         """
 <speak>
-<s>i can start ${TEST_PRESENTATIONS.size()} presentations</s>
-${TEST_PRESENTATIONS.collect { it.name }.join('<break strength="medium"/>')}
+<s>i can start ${presentations.size()} presentations</s>
+${joinedSsml}
 <s>which would you like</s>
 </speak>
 """.replaceAll('\n', '')
