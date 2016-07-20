@@ -1,5 +1,7 @@
 package com.shankyank.alexa.presenter;
 
+import com.amazon.speech.speechlet.SpeechletException;
+
 import java.util.List;
 
 /**
@@ -8,11 +10,13 @@ import java.util.List;
 interface SessionInitializer {
     /**
      * @return the list of available presentations
+     * @throws SpeechletException if the presentations cannot be retrieved
      */
-    List<Presentation> getAvailablePresentations();
+    List<Presentation> getAvailablePresentations() throws SpeechletException;
 
     /**
      * @return the presentation starter
+     * @throws SpeechletException if the starter cannot be configured
      */
-    PresentationStarter getPresentationStarter();
+    PresentationStarter getPresentationStarter() throws SpeechletException;
 }

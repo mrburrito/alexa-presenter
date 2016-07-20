@@ -1,0 +1,15 @@
+[
+  {
+    "name": "pikachu i can't see you",
+    "filename": "pikachu.pptx",
+    "ssml": "pikachu<break strength=\"medium\"/>i can't see you"
+  },
+  {
+    "name": "knock knock jokes for dummies",
+    "filename": "knock_knock_for_dummies.pptx"
+  },
+  {
+    "name": "lambda",
+    "filename": "lambda.pptx"
+  }
+]

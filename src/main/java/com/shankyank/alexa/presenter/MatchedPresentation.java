@@ -1,6 +1,7 @@
 package com.shankyank.alexa.presenter;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * A matched presentation with speech input and confidence.
@@ -11,7 +12,9 @@ public class MatchedPresentation implements Comparable<MatchedPresentation> {
     private final Presentation presentation;
 
     @JsonCreator
-    public MatchedPresentation(String spokenName, double confidence, Presentation presentation) {
+    public MatchedPresentation(@JsonProperty("spokenName") String spokenName,
+                               @JsonProperty("confidence") double confidence,
+                               @JsonProperty("presentation") Presentation presentation) {
         this.spokenName = spokenName;
         this.confidence = confidence;
         this.presentation = presentation;

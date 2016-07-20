@@ -1,16 +1,23 @@
 package com.shankyank.alexa.presenter;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Domain object representing a presentation.
  */
 public class Presentation {
-    /** The name of the presentation. */
+    /**
+     * The name of the presentation.
+     */
     private final String name;
-    /** The SSML pronunication markup for the presentation. */
+    /**
+     * The SSML pronunication markup for the presentation.
+     */
     private final String ssml;
-    /** The filename of the presentation. */
+    /**
+     * The filename of the presentation.
+     */
     private final String filename;
 
     public Presentation(String name, String filename) {
@@ -18,7 +25,9 @@ public class Presentation {
     }
 
     @JsonCreator
-    Presentation(final String name, final String filename, final String ssml) {
+    Presentation(@JsonProperty(value = "name", required = true) final String name,
+                 @JsonProperty(value = "filename", required = true) final String filename,
+                 @JsonProperty(value = "ssml", required = false) final String ssml) {
         this.name = name;
         this.filename = filename;
         if (ssml == null || ssml.trim().isEmpty()) {
@@ -36,7 +45,9 @@ public class Presentation {
         return filename;
     }
 
-    public String getSsml() { return ssml; }
+    public String getSsml() {
+        return ssml;
+    }
 
     @Override
     public String toString() {
