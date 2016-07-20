@@ -1,11 +1,11 @@
-StartPresentation start {PRESENTATION}
-StartPresentation start presentation {PRESENTATION}
-StartPresentation open {PRESENTATION}
-StartPresentation open presentation {PRESENTATION}
-StartPresentation show {PRESENTATION}
-StartPresentation show presentation {PRESENTATION}
-StartPresentation run {PRESENTATION}
-StartPresentation run presentation {PRESENTATION}
+StartPresentation start {Presentation}
+StartPresentation start presentation {Presentation}
+StartPresentation open {Presentation}
+StartPresentation open presentation {Presentation}
+StartPresentation show {Presentation}
+StartPresentation show presentation {Presentation}
+StartPresentation run {Presentation}
+StartPresentation run presentation {Presentation}
 StartPresentation start a presentation
 StartPresentation start my presentation
 StartPresentation start the presentation
@@ -19,5 +19,3 @@ ListPresentations what presentations do you know about
 ListPresentations what presentations can i start
 ListPresentations what presentations can you start
 ListPresentations what presentations do you have
-
-
