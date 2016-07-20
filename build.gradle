@@ -12,6 +12,8 @@ repositories {
 
 dependencies {
     compile group: 'com.amazon.alexa', name: 'alexa-skills-kit', version: '1.1.+'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-sns', version: '1.11.+'
+    compile group: 'commons-lang', name: 'commons-lang', version: '2.5'
 
     testCompile "org.codehaus.groovy:groovy-all:2.4.1"
     testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
