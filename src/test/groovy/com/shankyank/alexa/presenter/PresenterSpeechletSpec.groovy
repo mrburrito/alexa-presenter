@@ -172,11 +172,11 @@ class PresenterSpeechletSpec extends Specification {
         IntentRequest request = createStartRequest(name)
         def result = instance.onIntent(request, session)
         !result.shouldEndSession
-        getJsonAttribute(session, PRESENTATION_KEY, MatchedPresentation).presentation == presentation
+        getJsonAttribute(session, PRESENTATION_KEY, MatchedPresentation)?.presentation == presentation
         result.outputSpeech.ssml == "<speak>did you mean ${presentation.ssml}</speak>"
 
         where:
-        name << [ 'confidence', 'low con fee dense' ]
+        name << [ 'can feed', 'condense' ]
     }
 
     def 'presentations are listed for yes intent with no previously requested presentation'() {
@@ -245,7 +245,9 @@ class PresenterSpeechletSpec extends Specification {
     }
 
     private static def getJsonAttribute = { session, key, type ->
-        JSON.readValue((String)session.getAttribute(key), type)
+        session.getAttribute(key)?.with {
+            JSON.readValue(it, type)
+        }
     }
 
     private static IntentRequest createIntentRequest(final String intentName, final Map slots=[:]) {

@@ -7,6 +7,8 @@ import com.amazon.speech.ui.SsmlOutputSpeech;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.language.DoubleMetaphone;
+import org.apache.commons.codec.language.Metaphone;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,16 +165,40 @@ public class PresenterSpeechlet implements Speechlet {
             throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         SortedSet<MatchedPresentation> matches = new TreeSet<>();
+        String spokenName = slot.getValue();
         for (Presentation presentation : presentations) {
-            String spokenName = slot.getValue();
-            int distance = StringUtils.getLevenshteinDistance(spokenName, presentation.getName());
-            int nameLength = presentation.getName().length();
-            double confidence = (double) (nameLength - distance) / (double) nameLength;
-            LOGGER.debug("[{}] presentation name=\"{}\", spoken=\"{}\", distance={}, confidence={}",
-                    session.getSessionId(), presentation.getName(), spokenName, distance, confidence);
+            String name = presentation.getName();
+            double levConfidence = getLevenshteinConfidence(spokenName, name);
+            double metaConfidence = getMetaphoneConfidence(spokenName, name);
+            double confidence = Math.max(levConfidence, metaConfidence);
+            LOGGER.debug("[{}] presentation name=\"{}\", spoken=\"{}\", levenshtein={}, metaphone={}, confidence={}",
+                    session.getSessionId(), presentation.getName(), spokenName, levConfidence, metaConfidence,
+                    confidence);
             matches.add(new MatchedPresentation(spokenName, confidence, presentation));
         }
-        return matches.last();
+        MatchedPresentation bestMatch = matches.last();
+        LOGGER.debug("[{}] spoken=\"{}\", best match={}", session.getSessionId(), spokenName, bestMatch);
+        return bestMatch;
+    }
+
+    private static double getLevenshteinConfidence(final String actual, final String expected) {
+        int distance = StringUtils.getLevenshteinDistance(actual, expected);
+        LOGGER.debug("levenshteinDistance({}, {}) = {}", actual, expected, distance);
+        int nameLength = expected.length();
+        return (double) (nameLength - distance) / (double) nameLength;
+    }
+
+    private static double getMetaphoneConfidence(final String actual, final String expected) {
+        DoubleMetaphone metaphone = new DoubleMetaphone();
+        metaphone.setMaxCodeLen(20);
+        if (metaphone.isDoubleMetaphoneEqual(actual, expected)) {
+            LOGGER.debug("metaphone({}, {}) matches!", actual, expected);
+            return 1.0;
+        }
+        String actualMetaphone = metaphone.doubleMetaphone(actual);
+        String expectedMetaphone = metaphone.doubleMetaphone(expected);
+        LOGGER.debug("metaphone({}, {}) == '{}', '{}'", actual, expected, actualMetaphone, expectedMetaphone);
+        return getLevenshteinConfidence(actualMetaphone, expectedMetaphone);
     }
 
     private static List<Presentation> getPresentationList(final Session session) throws SpeechletException {
