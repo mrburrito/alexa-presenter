@@ -1,1 +1,1 @@
-arn:aws:sns:us-east-1:616223318980:bit-presenter
+arn:aws:sns:us-east-1:616223318980:bti-presenter

@@ -1,15 +1,15 @@
 [
   {
     "name": "pikachu i can't see you",
-    "filename": "pikachu.pptx",
+    "filename": "pikachu.key",
     "ssml": "pikachu<break strength=\"medium\"/>i can't see you"
   },
   {
     "name": "knock knock jokes for dummies",
-    "filename": "knock_knock_for_dummies.pptx"
+    "filename": "knock_knock_for_dummies.key"
   },
   {
     "name": "lambda",
-    "filename": "lambda.pptx"
+    "filename": "lambda.key"
   }
 ]
