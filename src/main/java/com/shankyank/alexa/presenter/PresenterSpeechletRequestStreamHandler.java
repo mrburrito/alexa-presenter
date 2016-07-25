@@ -9,12 +9,16 @@ import java.util.Set;
  * Lambda handler for Presenter application.
  */
 public final class PresenterSpeechletRequestStreamHandler extends SpeechletRequestStreamHandler {
-    /** The Alexa application ID for the Presenter application. */
+    /**
+     * The Alexa application ID for the Presenter application.
+     */
     private static final String PRESENTER_APPLICATION_ID = "";
-    /** The set of application IDs that are valid for this service. */
+    /**
+     * The set of application IDs that are valid for this service.
+     */
     private static final Set<String> SUPPORTED_APPLICATION_IDS = Collections.emptySet();
 
     public PresenterSpeechletRequestStreamHandler() {
-        super(new PresenterSpeechlet(), SUPPORTED_APPLICATION_IDS);
+        super(new PresenterSpeechlet(new S3SessionInitializer()), SUPPORTED_APPLICATION_IDS);
     }
 }
