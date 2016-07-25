@@ -8,7 +8,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.language.DoubleMetaphone;
-import org.apache.commons.codec.language.Metaphone;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,6 @@ public class PresenterSpeechlet implements Speechlet {
     public static final String LIST_PRESENTATIONS_INTENT = "ListPresentations";
     public static final String PRESENTATION_KEY = "presenter.selectedPresentation";
     public static final String PRESENTATIONS_KEY = "presenter.presentations";
-    public static final String STARTER_KEY = "presenter.presentationStarter";
 
     private static final String HELP_TEXT =
             "<s>you can list presentations or start a presentation</s><s>what would you like</s>";
@@ -60,9 +58,7 @@ public class PresenterSpeechlet implements Speechlet {
     }
 
     public void onSessionStarted(SessionStartedRequest request, Session session) throws SpeechletException {
-        List<Presentation> presentations = sessionInitializer.getAvailablePresentations();
-        session.setAttribute(PRESENTATIONS_KEY, toJson(presentations));
-        LOGGER.debug("[{}]: presentations={}", session.getSessionId(), presentations);
+        loadPresentations(session);
     }
 
     public SpeechletResponse onLaunch(LaunchRequest request, Session session) throws SpeechletException {
@@ -99,11 +95,17 @@ public class PresenterSpeechlet implements Speechlet {
         session.removeAttribute(PRESENTATION_KEY);
     }
 
-    private static boolean hasPresentations(final Session session) throws SpeechletException {
+    private void loadPresentations(final Session session) throws SpeechletException {
+            List<Presentation> presentations = sessionInitializer.getAvailablePresentations();
+            LOGGER.debug("[{}]: presentations={}", session.getSessionId(), presentations);
+            session.setAttribute(PRESENTATIONS_KEY, toJson(presentations));
+    }
+
+    private boolean hasPresentations(final Session session) throws SpeechletException {
         return !getPresentationList(session).isEmpty();
     }
 
-    private static boolean isSlotEmpty(final Slot slot) {
+    private boolean isSlotEmpty(final Slot slot) {
         return slot == null || slot.getValue() == null || slot.getValue().trim().isEmpty();
     }
 
@@ -157,12 +159,11 @@ public class PresenterSpeechlet implements Speechlet {
         return response;
     }
 
-    private static SpeechletResponse listPresentations(final Session session) throws SpeechletException {
+    private SpeechletResponse listPresentations(final Session session) throws SpeechletException {
         return createContinueSessionResponse(generatePresentationListText(session));
     }
 
-    private static MatchedPresentation matchPresentation(final Slot slot, final Session session)
-            throws SpeechletException {
+    private MatchedPresentation matchPresentation(final Slot slot, final Session session) throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         SortedSet<MatchedPresentation> matches = new TreeSet<>();
         String spokenName = slot.getValue();
@@ -181,14 +182,14 @@ public class PresenterSpeechlet implements Speechlet {
         return bestMatch;
     }
 
-    private static double getLevenshteinConfidence(final String actual, final String expected) {
+    private double getLevenshteinConfidence(final String actual, final String expected) {
         int distance = StringUtils.getLevenshteinDistance(actual, expected);
         LOGGER.debug("levenshteinDistance({}, {}) = {}", actual, expected, distance);
         int nameLength = expected.length();
         return (double) (nameLength - distance) / (double) nameLength;
     }
 
-    private static double getMetaphoneConfidence(final String actual, final String expected) {
+    private double getMetaphoneConfidence(final String actual, final String expected) {
         DoubleMetaphone metaphone = new DoubleMetaphone();
         metaphone.setMaxCodeLen(20);
         if (metaphone.isDoubleMetaphoneEqual(actual, expected)) {
@@ -201,12 +202,12 @@ public class PresenterSpeechlet implements Speechlet {
         return getLevenshteinConfidence(actualMetaphone, expectedMetaphone);
     }
 
-    private static List<Presentation> getPresentationList(final Session session) throws SpeechletException {
+    private List<Presentation> getPresentationList(final Session session) throws SpeechletException {
         List<Presentation> presentations = getSessionAttribute(session, PRESENTATIONS_KEY, LIST_OF_PRESENTATIONS);
         return presentations != null ? presentations : Collections.EMPTY_LIST;
     }
 
-    private static String generatePresentationListText(final Session session) throws SpeechletException {
+    private String generatePresentationListText(final Session session) throws SpeechletException {
         List<Presentation> presentations = getPresentationList(session);
         int count = presentations.size();
         StringBuilder builder = new StringBuilder(String.format("<s>i can start %d presentations</s>", count));
@@ -223,15 +224,15 @@ public class PresenterSpeechlet implements Speechlet {
         return builder.toString();
     }
 
-    private static SpeechletResponse createContinueSessionResponse(final String format, final Object... args) {
+    private SpeechletResponse createContinueSessionResponse(final String format, final Object... args) {
         return createResponse(String.format(format, args), false);
     }
 
-    private static SpeechletResponse createEndSessionResponse(final String format, final Object... args) {
+    private SpeechletResponse createEndSessionResponse(final String format, final Object... args) {
         return createResponse(String.format(format, args), true);
     }
 
-    private static SpeechletResponse createResponse(final String ssml, final boolean shouldEndSession) {
+    private SpeechletResponse createResponse(final String ssml, final boolean shouldEndSession) {
         LOGGER.debug("Generating response (end session={}): {}", shouldEndSession, ssml);
 
         SsmlOutputSpeech speech = new SsmlOutputSpeech();
