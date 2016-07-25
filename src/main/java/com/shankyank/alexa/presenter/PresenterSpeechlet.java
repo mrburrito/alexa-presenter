@@ -3,6 +3,7 @@ package com.shankyank.alexa.presenter;
 import com.amazon.speech.slu.Intent;
 import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.*;
+import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SsmlOutputSpeech;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -30,8 +31,10 @@ public class PresenterSpeechlet implements Speechlet {
     public static final String PRESENTATIONS_KEY = "presenter.presentations";
 
     private static final String HELP_TEXT =
-            "<s>you can list presentations or start a presentation</s><s>what would you like</s>";
+            "<s>you can list presentations or start a presentation</s><s>what would you like?</s>";
     private static final String NO_PRESENTATIONS_TEXT = "<s>no presentations are available</s><s>goodbye</s>";
+    private static final String HELP_REPROMPT = "what would you like?";
+    private static final String START_REPROMPT = "which presentation should I start?";
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -63,17 +66,18 @@ public class PresenterSpeechlet implements Speechlet {
 
     public SpeechletResponse onLaunch(LaunchRequest request, Session session) throws SpeechletException {
         return hasPresentations(session) ?
-                createContinueSessionResponse(HELP_TEXT) :
+                createContinueSessionResponse(HELP_REPROMPT, HELP_TEXT) :
                 createEndSessionResponse(NO_PRESENTATIONS_TEXT);
     }
 
     public SpeechletResponse onIntent(IntentRequest request, Session session) throws SpeechletException {
+        Intent intent = request.getIntent();
+        LOGGER.debug("[{}] Handling intent: {}", session.getSessionId(), intent.getName());
+
         if (!hasPresentations(session)) {
             return createEndSessionResponse(NO_PRESENTATIONS_TEXT);
         }
 
-        Intent intent = request.getIntent();
-        LOGGER.debug("[{}] Handling intent: {}", session.getSessionId(), intent.getName());
         switch (intent.getName()) {
             case START_PRESENTATION_INTENT:
                 return onStartPresentation(intent, session);
@@ -128,11 +132,11 @@ public class PresenterSpeechlet implements Speechlet {
                 LOGGER.debug("[{}] 0.85 > Match Confidence {} >= 0.5; requesting confirmation", session.getSessionId(),
                         matched.getConfidence());
                 session.setAttribute(PRESENTATION_KEY, toJson(matched));
-                response = createContinueSessionResponse("did you mean %s", matched.getPresentation().getSsml());
+                response = createContinueSessionResponse(START_REPROMPT, "did you mean %s", matched.getPresentation().getSsml());
             } else {
                 LOGGER.debug("[{}] Unrecognized presentation. Confidence < 0.5 for best match: {}",
                         session.getSessionId(), matched);
-                response = createContinueSessionResponse("<s>i don't recognize that presentation</s>%s",
+                response = createContinueSessionResponse(START_REPROMPT, "<s>i don't recognize that presentation</s>%s",
                         HELP_TEXT);
             }
         }
@@ -160,7 +164,7 @@ public class PresenterSpeechlet implements Speechlet {
     }
 
     private SpeechletResponse listPresentations(final Session session) throws SpeechletException {
-        return createContinueSessionResponse(generatePresentationListText(session));
+        return createContinueSessionResponse(HELP_REPROMPT, generatePresentationListText(session));
     }
 
     private MatchedPresentation matchPresentation(final Slot slot, final Session session) throws SpeechletException {
@@ -217,31 +221,36 @@ public class PresenterSpeechlet implements Speechlet {
                 builder.append("<break strength=\"medium\"/>");
             }
             if (i == count - 2) {
-                builder.append("or ");
+                builder.append("or<break strength=\"medium\"/> ");
             }
         }
-        builder.append("<s>which would you like</s>");
+        builder.append("<s>which would you like?</s>");
         return builder.toString();
     }
 
-    private SpeechletResponse createContinueSessionResponse(final String format, final Object... args) {
-        return createResponse(String.format(format, args), false);
+    private SpeechletResponse createContinueSessionResponse(final String repromptText, final String format,
+                                                            final Object... args) {
+        SsmlOutputSpeech repromptSpeech = asSsml(repromptText);
+        SsmlOutputSpeech speech = asSsml(format, args);
+        LOGGER.debug("Generating Ask response: \"{}\" with reprompt: \"{}\"", speech.getSsml(),
+                repromptSpeech.getSsml());
+
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(repromptSpeech);
+        return SpeechletResponse.newAskResponse(speech, reprompt);
     }
 
     private SpeechletResponse createEndSessionResponse(final String format, final Object... args) {
-        return createResponse(String.format(format, args), true);
+        SsmlOutputSpeech speech = asSsml(format, args);
+        LOGGER.debug("Generating Tell reponse: \"{}\"", speech.getSsml());
+        return SpeechletResponse.newTellResponse(speech);
     }
 
-    private SpeechletResponse createResponse(final String ssml, final boolean shouldEndSession) {
-        LOGGER.debug("Generating response (end session={}): {}", shouldEndSession, ssml);
-
+    private static SsmlOutputSpeech asSsml(final String format, final Object... args) {
         SsmlOutputSpeech speech = new SsmlOutputSpeech();
-        speech.setSsml(String.format("<speak>%s</speak>", ssml));
-
-        SpeechletResponse response = new SpeechletResponse();
-        response.setShouldEndSession(shouldEndSession);
-        response.setOutputSpeech(speech);
-        return response;
+        String speechFormat = String.format("<speak>%s</speak>", format);
+        speech.setSsml(String.format(speechFormat, args));
+        return speech;
     }
 
     private static String toJson(final Object obj) throws SpeechletException {

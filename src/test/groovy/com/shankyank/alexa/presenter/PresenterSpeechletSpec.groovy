@@ -62,7 +62,7 @@ class PresenterSpeechletSpec extends Specification {
 
         then:
         !result.shouldEndSession
-        result.outputSpeech.ssml == '<speak><s>you can list presentations or start a presentation</s><s>what would you like</s></speak>'
+        result.outputSpeech.ssml == '<speak><s>you can list presentations or start a presentation</s><s>what would you like?</s></speak>'
     }
 
     def 'user is informed by launch event if no presentations are available and session is terminated'() {
@@ -78,7 +78,7 @@ class PresenterSpeechletSpec extends Specification {
         presentations << [null, []]
     }
 
-    def 'user is informed by all actionable intents when no presentations are available and session is temrinated'() {
+    def 'user is informed by all actionable intents when no presentations are available and session is terminated'() {
         expect:
         session.setAttribute(PRESENTATIONS_KEY, presentations)
         def result = instance.onIntent(createIntentRequest(intent), session)
@@ -119,7 +119,7 @@ class PresenterSpeechletSpec extends Specification {
         then:
         !result.shouldEndSession
         result.outputSpeech.ssml == "<speak><s>i don't recognize that presentation</s>" +
-                "<s>you can list presentations or start a presentation</s><s>what would you like</s></speak>"
+                "<s>you can list presentations or start a presentation</s><s>what would you like?</s></speak>"
     }
 
     def 'recognized presentation is started by start intent'() {
@@ -269,12 +269,12 @@ class PresenterSpeechletSpec extends Specification {
     private static String getPresentationSsml(final List presentations=TEST_PRESENTATIONS) {
         List<String> ssml = presentations.collect { it.ssml }
         String joinedSsml = ssml.join('<break strength="medium"/>')
-        joinedSsml = joinedSsml.replace(ssml.last(), "or ${ssml.last()}")
+        joinedSsml = joinedSsml.replace(ssml.last(), "or<break strength=\"medium\"/> ${ssml.last()}")
         """
 <speak>
 <s>i can start ${presentations.size()} presentations</s>
 ${joinedSsml}
-<s>which would you like</s>
+<s>which would you like?</s>
 </speak>
 """.replaceAll('\n', '')
     }
