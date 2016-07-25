@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SnsPresentationStarter implements PresentationStarter {
     private static final Logger LOGGER = LoggerFactory.getLogger(SnsPresentationStarter.class);
-    private static final String DEFAULT_SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:616223318980:bit-presenter";
+    private static final String DEFAULT_SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:616223318980:bti-presenter";
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final String topicArn;
@@ -25,7 +25,7 @@ public class SnsPresentationStarter implements PresentationStarter {
     }
 
     public SnsPresentationStarter(String topicArn) {
-        this.topicArn = topicArn;
+        this.topicArn = topicArn.trim();
     }
 
     @Override
