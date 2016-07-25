@@ -8,7 +8,9 @@ StartPresentation run {Presentation}
 StartPresentation run presentation {Presentation}
 StartPresentation start a presentation
 StartPresentation start my presentation
+StartPresentation start my {Presentation} presentation
 StartPresentation start the presentation
+StartPresentation start the {Presentation} presentation
 
 ListPresentations list
 ListPresentations list presentations
